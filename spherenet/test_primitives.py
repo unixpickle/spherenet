@@ -7,7 +7,26 @@ import unittest
 import numpy as np
 import tensorflow as tf
 
-from .conv import cos2d
+from .primitives import cos1d, cos2d
+
+class Cos1DTest(unittest.TestCase):
+    """
+    Tests for the cos1d() primitive.
+    """
+    def test_asym(self):
+        """
+        Test diversely shaped inputs/kernels.
+        """
+        inputs = np.random.normal(size=(3, 5))
+        filters = np.random.normal(size=(5, 2))
+        expected = np.zeros((3, 2), dtype='float64')
+        for batch_idx in range(3):
+            for kernel_idx in range(2):
+                expected[batch_idx][kernel_idx] = cos_dist(inputs[batch_idx],
+                                                           filters[:, kernel_idx])
+        actual = cos1d(tf.constant(inputs), tf.constant(filters))
+        with tf.Session() as sess:
+            self.assertTrue(np.allclose(expected, sess.run(actual)))
 
 class Cos2DTest(unittest.TestCase):
     """

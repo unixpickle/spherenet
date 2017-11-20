@@ -4,6 +4,24 @@ Spherical convolutional layers.
 
 import tensorflow as tf
 
+def cos1d(inputs, kernels):
+    """
+    Compute the 1-D cosine distances between a batch of
+    inputs and a batch of kernels.
+
+    Args:
+      inputs: a 2-D Tensor of shape [batch x in_size].
+      kernels: a 2-D Tensor of shape [in_size x out_size].
+
+    Returns:
+      A 2-D Tensor of shape [batch x out_size] containing
+        cosine distances between each input vector and all
+        the kernels.
+    """
+    norm_inputs = inputs / tf.norm(inputs, axis=-1, keep_dims=True)
+    norm_kernels = kernels / tf.norm(kernels, axis=0)
+    return tf.matmul(norm_inputs, norm_kernels)
+
 def cos2d(inputs, filters, strides, padding):
     """
     Compute the 2-D convolutional cosine distances between
