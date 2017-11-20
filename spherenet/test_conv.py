@@ -30,8 +30,6 @@ class Cos2DTest(unittest.TestCase):
                 expected[image_idx, 0, 0, filter_idx] = np.dot(vec1, vec2)
         actual = cos2d(tf.constant(image), tf.constant(filters), [1, 1, 1, 1], 'VALID')
         with tf.Session() as sess:
-            print(expected)
-            print(sess.run(actual))
             self.assertTrue(np.allclose(expected, sess.run(actual)))
 
 if __name__ == '__main__':
