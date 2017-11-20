@@ -68,14 +68,14 @@ class Cos2DTest(unittest.TestCase):
         with tf.Session() as sess:
             self.assertTrue(np.allclose(expected, sess.run(actual)))
 
-def cos_dist(vec1, vec2):
+def cos_dist(vec1, vec2, epsilon=1e-5):
     """
     Compute the cosine distance between two tensors.
     """
     vec1 = vec1.flatten()
     vec2 = vec2.flatten()
-    vec1 = vec1 / np.linalg.norm(vec1)
-    vec2 = vec2 / np.linalg.norm(vec2)
+    vec1 = vec1 / (np.linalg.norm(vec1) + epsilon)
+    vec2 = vec2 / (np.linalg.norm(vec2) + epsilon)
     return np.dot(vec1, vec2)
 
 if __name__ == '__main__':
