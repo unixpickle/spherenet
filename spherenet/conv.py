@@ -23,12 +23,11 @@ def cos2d(inputs, filters, strides, padding):
     """
     filter_height, filter_width, _, _ = filters.get_shape()
     patches = tf.extract_image_patches(images=inputs,
-                                       ksizes=[1, filter_height, filter_width,
-                                               inputs.get_shape()[-1]],
+                                       ksizes=[1, filter_height, filter_width, 1],
                                        strides=strides,
                                        rates=[1, 1, 1, 1],
                                        padding=padding)
     norm_patches = patches / tf.norm(patches, axis=-1, keep_dims=True)
     norm_filters = tf.reshape(filters, (-1, tf.shape(filters)[-1]))
-    norm_filters /= tf.norm(norm_filters, axis=-1, keep_dims=True)
-    return tf.matmul(norm_patches, norm_filters)
+    norm_filters /= tf.norm(norm_filters, axis=0, keep_dims=True)
+    return tf.einsum('abcd,de->abce', norm_patches, norm_filters)
