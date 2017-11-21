@@ -17,7 +17,7 @@ def sphere_conv(inputs,
                 variant='linear',
                 sigmoid_k=None,
                 kernel_initializer=tf.orthogonal_initializer(),
-                regularize=True,
+                regularize=False,
                 name='sphere_conv'):
     """
     Create a SphereConv layer.
@@ -45,6 +45,7 @@ def sphere_conv(inputs,
     with tf.variable_scope(None, default_name=name):
         in_depth = int(inputs.get_shape()[-1])
         kernels = tf.get_variable('kernels',
+                                  dtype=inputs.dtype,
                                   shape=(kernel_size[0], kernel_size[1], in_depth, filters),
                                   initializer=kernel_initializer)
         if regularize:
@@ -54,7 +55,7 @@ def sphere_conv(inputs,
             return cosines
         elif variant == 'linear':
             return 1 - (2/math.pi)*tf.acos(cosines)
-        elif variant == 'cosine':
+        elif variant == 'sigmoid':
             sigmoid_k = (sigmoid_k or tf.get_variable('k',
                                                       dtype=kernels.dtype,
                                                       initializer=[0.5]*filters))
@@ -68,7 +69,7 @@ def _add_kernel_regularizer(matrix):
     columns of the matrix to be orthogonal.
     """
     dots = tf.matmul(tf.transpose(matrix), matrix)
-    ident = tf.eye(matrix.get_shape()[-1], dtype=matrix.dtype)
+    ident = tf.eye(int(matrix.get_shape()[-1]), dtype=matrix.dtype)
     diffs = tf.reduce_sum(tf.square(dots - ident))
     tf.losses.add_loss(diffs, loss_collection=tf.GraphKeys.REGULARIZATION_LOSSES)
 
