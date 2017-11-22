@@ -29,7 +29,7 @@ class SphereConvTest(unittest.TestCase):
                                      strides=2,
                                      padding='same',
                                      variant='cosine',
-                                     regularize=True)
+                                     regularization=0.1)
                 self.assertEqual(actual.dtype, tf.float64)
                 kernels = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                             scope="sphere_conv/kernels")[0]
@@ -45,10 +45,10 @@ class SphereConvTest(unittest.TestCase):
         with tf.Graph().as_default():
             with tf.Session() as sess:
                 images = tf.random_normal((3, 8, 9, 5), dtype=tf.float64)
-                sphere_conv(images, 4, 3, regularize=True)
+                sphere_conv(images, 4, 3, regularization=0.1)
                 sphere_conv(images, 4, 3,
                             kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                            regularize=True)
+                            regularization=0.1)
                 sess.run(tf.global_variables_initializer())
                 orthog_reg, normal_reg = sess.run(tf.losses.get_regularization_losses())
                 self.assertTrue(np.allclose(orthog_reg, 0))

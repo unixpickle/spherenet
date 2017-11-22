@@ -17,7 +17,7 @@ def sphere_conv(inputs,
                 variant='linear',
                 sigmoid_k=None,
                 kernel_initializer=tf.orthogonal_initializer(),
-                regularize=False,
+                regularization=None,
                 name='sphere_conv'):
     """
     Create a SphereConv layer.
@@ -35,8 +35,9 @@ def sphere_conv(inputs,
         If None, a trainable variable is used.
         This value is broadcast as needed.
       kernel_initializer: initializer for the kernels.
-      regularize: if True, a regularization term is added
-        to tf.GraphKeys.REGULARIZATION_LOSSES.
+      regularization: the regularization coefficient.
+        If not none, a regularization term is added to
+        tf.GraphKeys.REGULARIZATION_LOSSES.
       name: name of the layer.
     """
     if not tf.contrib.framework.nest.is_sequence(kernel_size):
@@ -49,8 +50,8 @@ def sphere_conv(inputs,
                                   dtype=inputs.dtype,
                                   shape=(kernel_size[0], kernel_size[1], in_depth, filters),
                                   initializer=kernel_initializer)
-        if regularize:
-            _add_kernel_regularizer(tf.reshape(kernels, (-1, filters)))
+        if regularization:
+            _add_kernel_regularizer(tf.reshape(kernels, (-1, filters)), regularization)
         cosines = cos2d(inputs, kernels, [1, strides[0], strides[1], 1], padding.upper())
         if variant == 'cosine':
             return cosines
@@ -134,7 +135,7 @@ def _ga_softmax_activation(variant, sigmoid_k, dtype):
     else:
         raise ValueError('unknown variant: ' + variant)
 
-def _add_kernel_regularizer(matrix):
+def _add_kernel_regularizer(matrix, coeff):
     """
     Creates a regularization loss that encourages the
     columns of the matrix to be orthogonal.
@@ -142,7 +143,7 @@ def _add_kernel_regularizer(matrix):
     dots = tf.matmul(tf.transpose(matrix), matrix)
     ident = tf.eye(int(matrix.get_shape()[-1]), dtype=matrix.dtype)
     diffs = tf.reduce_sum(tf.square(dots - ident))
-    tf.losses.add_loss(diffs, loss_collection=tf.GraphKeys.REGULARIZATION_LOSSES)
+    tf.losses.add_loss(diffs*coeff, loss_collection=tf.GraphKeys.REGULARIZATION_LOSSES)
 
 def _sigmoid_k_or_default(sigmoid_k, dtype):
     """
