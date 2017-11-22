@@ -58,6 +58,23 @@ class GASoftmaxTest(unittest.TestCase):
     """
     Tests for the GA-Softmax.
     """
+    def test_logits(self):
+        """
+        Test logit values in a very simple case.
+        """
+        for variant in ['linear', 'cosine', 'sigmoid']:
+            with tf.Graph().as_default():
+                with tf.Session() as sess:
+                    inputs = tf.constant([[2]], dtype=tf.float64)
+                    logits = ga_softmax(inputs, 2, variant=variant, margin=3)
+                    sess.run(tf.global_variables_initializer())
+                    weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                                scope='ga_softmax/weights')[0]
+                    sess.run(tf.assign(weights, np.array([[1, -1]], dtype='float64')))
+                    actual = sess.run(logits)
+                    expected = np.array([2, -2], dtype='float64')
+                    self.assertTrue(np.allclose(actual, expected))
+
     def test_margin_loss(self):
         """
         Test the loss term with a margin.
