@@ -2,11 +2,11 @@
 Routines for easily creating spherical layers.
 """
 
-import math
+from math import pi
 
 import tensorflow as tf
 
-from .primitives import cos2d, sigmoid_nonlinearity
+from .primitives import cos1d, cos2d, sigmoid_nonlinearity
 
 # pylint: disable=R0913
 def sphere_conv(inputs,
@@ -33,6 +33,7 @@ def sphere_conv(inputs,
       variant: 'linear', 'cosine', or 'sigmoid'.
       sigmoid_k: the `k` parameter for sigmoid layers.
         If None, a trainable variable is used.
+        This value is broadcast as needed.
       kernel_initializer: initializer for the kernels.
       regularize: if True, a regularization term is added
         to tf.GraphKeys.REGULARIZATION_LOSSES.
@@ -54,14 +55,84 @@ def sphere_conv(inputs,
         if variant == 'cosine':
             return cosines
         elif variant == 'linear':
-            return 1 - (2/math.pi)*tf.acos(cosines)
+            return 1 - (2/pi)*tf.acos(cosines)
         elif variant == 'sigmoid':
-            sigmoid_k = (sigmoid_k or tf.get_variable('k',
-                                                      dtype=kernels.dtype,
-                                                      initializer=[0.5]*filters))
+            sigmoid_k = _sigmoid_k_or_default(sigmoid_k, inputs.dtype)
             return sigmoid_nonlinearity(tf.acos(cosines), sigmoid_k)
         else:
             raise ValueError('unknown variant: ' + variant)
+
+# pylint: disable=R0914
+def ga_softmax(inputs,
+               outputs,
+               labels=None,
+               variant='linear',
+               sigmoid_k=None,
+               margin=1,
+               initializer=tf.orthogonal_initializer(),
+               name='ga_softmax'):
+    """
+    Create a generalized angular softmax layer.
+
+    If `labels` is specified, a loss is computed and added
+    to tf.GraphKeys.LOSSES.
+
+    Args:
+      inputs: a 2-D Tensor representing a batch of feature
+        vectors to use for classification.
+      outputs: number of output labels.
+      labels: output labels for computing the loss.
+        If specified, this is a batch of probability
+        distributions.
+      variant: 'linear', 'cosine', or 'sigmoid'.
+      sigmoid_k: the `k` parameter for sigmoid layers.
+        If None, a trainable variable is used.
+        This value is broadcast as needed.
+      margin: the margin coefficient. Values higher than 1
+        encourage a large margin.
+      initializer: initializer for the weight matrix.
+      name: name of the layer.
+
+    Returns:
+      If no labels are specified, a Tensor of logits.
+        If labels are specified, a pair (logits, loss).
+
+      The resulting logits do not depend on the margin.
+    """
+    with tf.variable_scope(None, default_name=name):
+        weights = tf.get_variable('weights',
+                                  dtype=inputs.dtype,
+                                  shape=(inputs.get_shape()[-1], outputs),
+                                  initializer=initializer)
+        angles = tf.acos(cos1d(inputs, weights))
+        activation_fn = _ga_softmax_activation(variant, sigmoid_k, inputs.dtype)
+        norms = tf.norm(inputs, axis=-1, keep_dims=True)
+        logits = activation_fn(angles) * norms
+        if labels is None:
+            return logits
+        margin_logits = activation_fn(angles * margin) * norms
+        loss = 0
+        for i in range(outputs):
+            sub_logits = tf.concat([logits[:, :i], margin_logits[:, i:i+1], logits[:, i+1:]],
+                                   axis=-1)
+            loss -= labels[:, i:i+1] * tf.nn.log_softmax(sub_logits)
+        tf.losses.add_loss(loss)
+        return logits, loss
+
+def _ga_softmax_activation(variant, sigmoid_k, dtype):
+    """
+    Get a function that applies the monotonically
+    decreasing activation for a GA-Softmax.
+    """
+    if variant == 'linear':
+        return lambda x: 1 - (2/pi)*x
+    elif variant == 'cosine':
+        return _repeated_cosine
+    elif variant == 'sigmoid':
+        sigmoid_k = _sigmoid_k_or_default(sigmoid_k, dtype)
+        return lambda x: sigmoid_nonlinearity(x, sigmoid_k)
+    else:
+        raise ValueError('unknown variant: ' + variant)
 
 def _add_kernel_regularizer(matrix):
     """
@@ -72,3 +143,18 @@ def _add_kernel_regularizer(matrix):
     ident = tf.eye(int(matrix.get_shape()[-1]), dtype=matrix.dtype)
     diffs = tf.reduce_sum(tf.square(dots - ident))
     tf.losses.add_loss(diffs, loss_collection=tf.GraphKeys.REGULARIZATION_LOSSES)
+
+def _sigmoid_k_or_default(sigmoid_k, dtype):
+    """
+    Return the sigmoid k constant or create a variable if
+    the constant is None.
+    """
+    return sigmoid_k or tf.get_variable('k', dtype=dtype, initializer=0.5)
+
+def _repeated_cosine(theta):
+    """
+    Monotonically decreasing piecewise cosine.
+    """
+    phase = tf.mod(theta, pi)
+    offset = tf.floor(theta / pi)
+    return tf.cos(phase) - 2*offset
