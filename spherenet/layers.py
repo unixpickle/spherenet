@@ -120,7 +120,7 @@ def ga_softmax(inputs,
                 loss = -term
             else:
                 loss -= term
-        tf.losses.add_loss(loss)
+        tf.losses.add_loss(tf.reduce_mean(loss))
         return logits, loss
 
 def _ga_softmax_activation(variant, sigmoid_k, dtype):
