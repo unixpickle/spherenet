@@ -48,11 +48,11 @@ def sphere_conv(inputs,
         strides = (strides, strides)
     with tf.variable_scope(None, default_name=name):
         in_depth = int(inputs.get_shape()[-1])
-        kernels = tf.get_variable('kernels',
+        kernels = tf.get_variable('kernel',
                                   dtype=inputs.dtype,
                                   shape=(kernel_size[0], kernel_size[1], in_depth, filters),
                                   initializer=kernel_initializer)
-        biases = tf.get_variable('biases',
+        biases = tf.get_variable('bias',
                                  dtype=inputs.dtype,
                                  shape=(filters,),
                                  initializer=bias_initializer)
@@ -76,7 +76,7 @@ def ga_softmax(inputs,
                variant='linear',
                sigmoid_k=None,
                margin=1,
-               initializer=tf.orthogonal_initializer(),
+               kernel_initializer=tf.orthogonal_initializer(),
                name='ga_softmax'):
     """
     Create a generalized angular softmax layer.
@@ -97,7 +97,7 @@ def ga_softmax(inputs,
         This value is broadcast as needed.
       margin: the margin coefficient. Values higher than 1
         encourage a large margin.
-      initializer: initializer for the weight matrix.
+      kernel_initializer: initializer for the weights.
       name: name of the layer.
 
     Returns:
@@ -106,10 +106,10 @@ def ga_softmax(inputs,
       The resulting logits do not depend on the margin.
     """
     with tf.variable_scope(None, default_name=name):
-        weights = tf.get_variable('weights',
+        weights = tf.get_variable('kernel',
                                   dtype=inputs.dtype,
                                   shape=(inputs.get_shape()[-1], outputs),
-                                  initializer=initializer)
+                                  initializer=kernel_initializer)
         angles = tf.acos(cos1d(inputs, weights))
         activation_fn = _ga_softmax_activation(variant, sigmoid_k, inputs.dtype)
         norms = tf.norm(inputs, axis=-1, keep_dims=True)

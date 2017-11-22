@@ -32,7 +32,7 @@ class SphereConvTest(unittest.TestCase):
                                      regularization=0.1)
                 self.assertEqual(actual.dtype, tf.float64)
                 kernels = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-                                            scope="sphere_conv/kernels")[0]
+                                            scope="sphere_conv/kernel")[0]
                 expected = cos2d(images, kernels, [1, 2, 2, 1], 'SAME')
                 sess.run(tf.global_variables_initializer())
                 actual, expected = sess.run((actual, expected))
@@ -69,7 +69,7 @@ class GASoftmaxTest(unittest.TestCase):
                     logits = ga_softmax(inputs, 2, variant=variant, margin=3)
                     sess.run(tf.global_variables_initializer())
                     weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-                                                scope='ga_softmax/weights')[0]
+                                                scope='ga_softmax/kernel')[0]
                     sess.run(tf.assign(weights, np.array([[1, -1]], dtype='float64')))
                     actual = sess.run(logits)
                     expected = np.array([2, -2], dtype='float64')
@@ -92,7 +92,7 @@ class GASoftmaxTest(unittest.TestCase):
                                                     margin=margin)
                         sess.run(tf.global_variables_initializer())
                         weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-                                                    scope='ga_softmax/weights')[0]
+                                                    scope='ga_softmax/kernel')[0]
                         sess.run(tf.assign(weights, np.array([[0.5, 0.7, 0.3], [1, 1, -1]],
                                                              dtype='float64')))
                         logits, losses = sess.run((logits, losses))
