@@ -2,6 +2,8 @@
 Spherical convolutional layers.
 """
 
+from math import pi
+
 import tensorflow as tf
 
 def cos1d(inputs, kernels, epsilon=1e-5):
@@ -51,3 +53,17 @@ def cos2d(inputs, filters, strides, padding, epsilon=1e-5):
     norm_filters = tf.reshape(filters, (-1, tf.shape(filters)[-1]))
     norm_filters /= tf.norm(norm_filters, axis=0, keep_dims=True) + epsilon
     return tf.einsum('abcd,de->abce', norm_patches, norm_filters)
+
+def sigmoid_nonlinearity(angles, sigmoid_k):
+    """
+    Compute a sigmoid SphereConv from angles.
+
+    Args:
+      angles: an N-D Tensor of angles.
+      sigmoid_k: a Tensor of curvature coefficients.
+        This is broadcast to match the shape of angles.
+    """
+    pi_coeff = -pi / (2 * sigmoid_k)
+    scale = (1 + tf.exp(pi_coeff)) / (1 - tf.exp(pi_coeff))
+    main_exp = tf.exp(angles/sigmoid_k + pi_coeff)
+    return scale * (1 - main_exp) / (1 + main_exp)

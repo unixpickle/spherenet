@@ -6,7 +6,7 @@ import math
 
 import tensorflow as tf
 
-from .primitives import cos2d
+from .primitives import cos2d, sigmoid_nonlinearity
 
 # pylint: disable=R0913
 def sphere_conv(inputs,
@@ -59,7 +59,7 @@ def sphere_conv(inputs,
             sigmoid_k = (sigmoid_k or tf.get_variable('k',
                                                       dtype=kernels.dtype,
                                                       initializer=[0.5]*filters))
-            return _sigmoid_nonlinearity(cosines, sigmoid_k)
+            return sigmoid_nonlinearity(tf.acos(cosines), sigmoid_k)
         else:
             raise ValueError('unknown variant: ' + variant)
 
@@ -72,12 +72,3 @@ def _add_kernel_regularizer(matrix):
     ident = tf.eye(int(matrix.get_shape()[-1]), dtype=matrix.dtype)
     diffs = tf.reduce_sum(tf.square(dots - ident))
     tf.losses.add_loss(diffs, loss_collection=tf.GraphKeys.REGULARIZATION_LOSSES)
-
-def _sigmoid_nonlinearity(cosines, sigmoid_k):
-    """
-    Compute a sigmoid SphereConv from angle cosines.
-    """
-    pi_coeff = -math.pi / (2 * sigmoid_k)
-    scale = (1 + tf.exp(pi_coeff)) / (1 - tf.exp(pi_coeff))
-    main_exp = tf.exp(tf.acos(cosines)/sigmoid_k + pi_coeff)
-    return scale * (1 - main_exp) / (1 + main_exp)
