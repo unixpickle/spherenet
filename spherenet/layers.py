@@ -17,6 +17,7 @@ def sphere_conv(inputs,
                 variant='linear',
                 sigmoid_k=None,
                 kernel_initializer=tf.orthogonal_initializer(),
+                bias_initializer=tf.zeros_initializer(),
                 regularization=None,
                 name='sphere_conv'):
     """
@@ -35,6 +36,7 @@ def sphere_conv(inputs,
         If None, a trainable variable is used.
         This value is broadcast as needed.
       kernel_initializer: initializer for the kernels.
+      bias_initializer: initializer for the biases.
       regularization: the regularization coefficient.
         If not none, a regularization term is added to
         tf.GraphKeys.REGULARIZATION_LOSSES.
@@ -50,16 +52,20 @@ def sphere_conv(inputs,
                                   dtype=inputs.dtype,
                                   shape=(kernel_size[0], kernel_size[1], in_depth, filters),
                                   initializer=kernel_initializer)
+        biases = tf.get_variable('biases',
+                                 dtype=inputs.dtype,
+                                 shape=(filters,),
+                                 initializer=bias_initializer)
         if regularization:
             _add_kernel_regularizer(tf.reshape(kernels, (-1, filters)), regularization)
         cosines = cos2d(inputs, kernels, [1, strides[0], strides[1], 1], padding.upper())
         if variant == 'cosine':
-            return cosines
+            return biases + cosines
         elif variant == 'linear':
-            return 1 - (2/pi)*tf.acos(cosines)
+            return biases + 1 - (2/pi)*tf.acos(cosines)
         elif variant == 'sigmoid':
             sigmoid_k = _sigmoid_k_or_default(sigmoid_k, inputs.dtype)
-            return sigmoid_nonlinearity(tf.acos(cosines), sigmoid_k)
+            return biases + sigmoid_nonlinearity(tf.acos(cosines), sigmoid_k)
         else:
             raise ValueError('unknown variant: ' + variant)
 
