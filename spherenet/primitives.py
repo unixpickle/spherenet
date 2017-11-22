@@ -6,7 +6,7 @@ from math import pi
 
 import tensorflow as tf
 
-def cos1d(inputs, kernels, epsilon=1e-5):
+def cos1d(inputs, kernels):
     """
     Compute the 1-D cosine distances between a batch of
     inputs and a batch of kernels.
@@ -21,11 +21,11 @@ def cos1d(inputs, kernels, epsilon=1e-5):
         cosine distances between each input vector and all
         the kernels.
     """
-    norm_inputs = inputs / (tf.norm(inputs, axis=-1, keep_dims=True) + epsilon)
-    norm_kernels = kernels / (tf.norm(kernels, axis=0) + epsilon)
+    norm_inputs = inputs / _always_nonzero(tf.norm(inputs, axis=-1, keep_dims=True))
+    norm_kernels = kernels / _always_nonzero(tf.norm(kernels, axis=0))
     return tf.matmul(norm_inputs, norm_kernels)
 
-def cos2d(inputs, filters, strides, padding, epsilon=1e-5):
+def cos2d(inputs, filters, strides, padding):
     """
     Compute the 2-D convolutional cosine distances between
     the filters and the input patches.
@@ -49,9 +49,9 @@ def cos2d(inputs, filters, strides, padding, epsilon=1e-5):
                                        strides=strides,
                                        rates=[1, 1, 1, 1],
                                        padding=padding)
-    norm_patches = patches / (tf.norm(patches, axis=-1, keep_dims=True) + epsilon)
+    norm_patches = patches / _always_nonzero(tf.norm(patches, axis=-1, keep_dims=True))
     norm_filters = tf.reshape(filters, (-1, tf.shape(filters)[-1]))
-    norm_filters /= tf.norm(norm_filters, axis=0, keep_dims=True) + epsilon
+    norm_filters /= _always_nonzero(tf.norm(norm_filters, axis=0, keep_dims=True))
     return tf.einsum('abcd,de->abce', norm_patches, norm_filters)
 
 def sigmoid_nonlinearity(angles, sigmoid_k):
@@ -67,3 +67,9 @@ def sigmoid_nonlinearity(angles, sigmoid_k):
     scale = (1 + tf.exp(pi_coeff)) / (1 - tf.exp(pi_coeff))
     main_exp = tf.exp(angles/sigmoid_k + pi_coeff)
     return scale * (1 - main_exp) / (1 + main_exp)
+
+def _always_nonzero(value, epsilon=1e-8):
+    """
+    Replace zero entries in value with a tiny epsilon.
+    """
+    return tf.where(tf.equal(value, 0), tf.zeros_like(value)+epsilon, value)
