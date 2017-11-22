@@ -96,8 +96,7 @@ def ga_softmax(inputs,
 
     Returns:
       If no labels are specified, a Tensor of logits.
-        If labels are specified, a pair (logits, losses).
-
+      If labels are specified, a pair (logits, losses).
       The resulting logits do not depend on the margin.
     """
     with tf.variable_scope(None, default_name=name):
