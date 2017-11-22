@@ -58,9 +58,9 @@ class GASoftmaxTest(unittest.TestCase):
     """
     Tests for the GA-Softmax.
     """
-    def test_logits(self):
+    def test_logits_1d(self):
         """
-        Test logit values in a very simple case.
+        Test logit values in a 1-dimensional case.
         """
         for variant in ['linear', 'cosine', 'sigmoid']:
             with tf.Graph().as_default():
