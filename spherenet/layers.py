@@ -96,7 +96,7 @@ def ga_softmax(inputs,
 
     Returns:
       If no labels are specified, a Tensor of logits.
-        If labels are specified, a pair (logits, loss).
+        If labels are specified, a pair (logits, losses).
 
       The resulting logits do not depend on the margin.
     """
@@ -112,11 +112,15 @@ def ga_softmax(inputs,
         if labels is None:
             return logits
         margin_logits = activation_fn(angles * margin) * norms
-        loss = 0
+        loss = None
         for i in range(outputs):
             sub_logits = tf.concat([logits[:, :i], margin_logits[:, i:i+1], logits[:, i+1:]],
                                    axis=-1)
-            loss -= labels[:, i:i+1] * tf.nn.log_softmax(sub_logits)
+            term = labels[:, i] * tf.nn.log_softmax(sub_logits)[:, i]
+            if loss is None:
+                loss = -term
+            else:
+                loss -= term
         tf.losses.add_loss(loss)
         return logits, loss
 
@@ -150,7 +154,9 @@ def _sigmoid_k_or_default(sigmoid_k, dtype):
     Return the sigmoid k constant or create a variable if
     the constant is None.
     """
-    return sigmoid_k or tf.get_variable('k', dtype=dtype, initializer=0.5)
+    if sigmoid_k is not None:
+        return sigmoid_k
+    return tf.get_variable('k', dtype=dtype, initializer=tf.constant(0.5, dtype=dtype))
 
 def _repeated_cosine(theta):
     """
