@@ -68,7 +68,7 @@ def sigmoid_nonlinearity(angles, sigmoid_k):
     main_exp = tf.exp(angles/sigmoid_k + pi_coeff)
     return scale * (1 - main_exp) / (1 + main_exp)
 
-def _always_nonzero(value, epsilon=1e-8):
+def _always_nonzero(value, epsilon=1e-2):
     """
     Replace zero entries in value with a tiny epsilon.
     """
