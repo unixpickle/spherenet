@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name='spherenet',
-    version='0.0.2',
+    version='0.0.3',
     description='Deep Hyperspherical Learning.',
     long_description='Implementation of https://arxiv.org/abs/1711.03189v1.',
     url='https://github.com/unixpickle/spherenet',
